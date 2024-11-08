@@ -1,0 +1,106 @@
+- name: Install and configure Apache on Ubuntu
+  hosts: webservers
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      become: true
+
+    - name: Install Apache
+      apt:
+        name: apache2
+        state: present
+
+    - name: Start Apache service
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+
+    - name: Add Repository
+      apt_repository:
+        repo: ppa:ondrej/php
+        state: present
+        update_cache: yes
+
+    - name: Install PHP 7.4
+      apt:
+        name: php7.4
+        state: present
+
+    - name: Install PHP extensions
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+    - php7.4-bcmath
+    - php7.4-bz2
+    - php7.4-calendar
+    - php7.4-ctype
+    - php7.4-curl
+    - php7.4-dom
+    - php7.4-exif
+    - php7.4-fileinfo
+    - php7.4-ftp
+    - php7.4-gd
+    - php7.4-gettext
+    - php7.4-iconv
+    - php7.4-json
+    - php7.4-mbstring
+    - php7.4-mcrypt
+    - php7.4-mysqli
+    - php7.4-mysqlnd
+    - php7.4-posix
+    - php7.4-readline
+    - php7.4-shmop
+    - php7.4-sockets
+    - php7.4-sqlite3
+    - php7.4-sysvmsg
+    - php7.4-sysvsem
+    - php7.4-sysvshm
+    - php7.4-tokenizer
+    - php7.4-xml
+    - php7.4-xmlreader
+    - php7.4-xmlwriter
+    - php7.4-xsl
+    - php7.4-zip
+
+    - name: Remove Apache Page
+      ansible.builtin.shell: |
+        rm /var/www/html/index.html
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: Restart Apache service
+      service:
+        name: apache2
+        state: restarted
+
+    - name: Install NVM and NODE
+      become: false
+      become_user: saap
+      ansible.builtin.shell: |
+        export NVM_DIR="$HOME/.nvm"
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+        source $NVM_DIR/nvm.sh
+        nvm install v18.16.0
+        nvm alias default v18.16.0
+        nvm use v18.16.0
+      args:
+        executable: /bin/bash
+
+    - name: Set Permissions
+      ansible.builtin.shell: |
+        sudo chown -R $USER /home/saap/.nvm/versions/node/v18.16.0/lib/node_modules
+      args:
+        executable: /bin/bash
+
+    - name: Install YARN
+      become: true
+      become_user: root
+      community.general.npm:
+        name: yarn
+        executable: /home/saap/.nvm/versions/node/v18.16.0/lib/node_modules/npm
+        global: true
